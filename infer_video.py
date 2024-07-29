@@ -6,6 +6,7 @@ import numpy as np
 from dpt.dpt import DptInference
 import time
 
+
 def load_frame(frame):
     img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # H, W, C
     img = np.transpose(img, (2, 0, 1))  # C, H, W
@@ -24,50 +25,62 @@ def run(args):
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
+    dpt = DptInference(args.engine, args.batch, (height, width), (height, width))
+
+    input_imgs = []
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        input_imgs.append(load_frame(frame))
+
+    input_imgs = np.concatenate(input_imgs, axis=0)
+
+    frame_count = 0
+    start_time = time.time()
+
+    depths = []
+    for i in range(0, input_imgs.shape[0], args.batch):
+        # Our implementation only support full batch
+        if i + args.batch > input_imgs.shape[0]:
+            break
+
+        input_img = input_imgs[i:i+args.batch]
+        depths.append(d := dpt(input_img))
+        
+        frame_count += args.batch
+        
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    average_fps = frame_count / elapsed_time
+    print(f"Average FPS: {average_fps:.2f}")
+
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     video_name = os.path.basename(args.video)
     output_path = os.path.join(args.outdir, f'{os.path.splitext(video_name)[0]}_depth.mp4')
     out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
 
-    dpt = DptInference(args.engine, 1, (height, width), (height, width))
-
-    frame_count = 0
-    start_time = time.time()
-
-    for _ in range(20):
-    # while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        input_img = load_frame(frame)
-        depth = dpt(input_img)
-
-        depth = depth.squeeze().cpu().numpy().astype(np.uint8)
-        if args.grayscale:
-            depth_colored = cv2.cvtColor(depth, cv2.COLOR_GRAY2BGR)
-        else:
-            depth_colored = cv2.applyColorMap(depth, cv2.COLORMAP_INFERNO)
-
-        out.write(depth_colored)
-
-        frame_count += 1
+    for depth in depths:
+        depth = depth.cpu().numpy().astype(np.uint8)
+        for d in depth:
+            if args.grayscale:
+                depth_colored = cv2.cvtColor(d, cv2.COLOR_GRAY2BGR)
+            else:
+                depth_colored = cv2.applyColorMap(d, cv2.COLORMAP_INFERNO)
+            out.write(depth_colored)
 
     cap.release()
     out.release()
 
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    average_fps = frame_count / elapsed_time
-
     print(f"Depth video saved to {output_path}.")
-    print(f"Average FPS: {average_fps:.2f}")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run depth estimation on a video with a TensorRT engine.')
     parser.add_argument('--video', type=str, required=True, help='Path to the input video')
     parser.add_argument('--outdir', type=str, default='./assets', help='Output directory for the depth video')
     parser.add_argument('--engine', type=str, required=True, help='Path to the TensorRT engine')
+    parser.add_argument('--batch', type=int, default=1, help='Use batch mode for inference')
     parser.add_argument('--grayscale', action='store_true', help='Save the depth map in grayscale')
     args = parser.parse_args()
 

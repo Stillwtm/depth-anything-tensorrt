@@ -60,13 +60,14 @@ class DptPostProcess(object):
     def _normalize(self, x):
         """Per channel normalize
         """
-        out_min = x.amin((-2, -1), keepdim=True)
-        out_max = x.amax((-2, -1), keepdim=True)
+        # out_min = x.amin((-2, -1), keepdim=True)
+        # out_max = x.amax((-2, -1), keepdim=True)
+        out_min = x.min()
+        out_max = x.max()
         return (x - out_min) / (out_max - out_min) * 255.
 
     def __call__(self, depth):
         depth = self._normalize(depth.reshape(*self._depth_shape))
-        # import ipdb; ipdb.set_trace()
         depth = F.interpolate(depth.unsqueeze(1), size=self._target_size, mode='bilinear', align_corners=False)
 
         return depth.to(self._dtype).squeeze(1)

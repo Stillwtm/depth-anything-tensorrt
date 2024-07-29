@@ -20,6 +20,8 @@ class DptInference:
         with trt.Runtime(logger) as runtime:
             with open(self._engine_path, 'rb') as f:
                 self._engine = runtime.deserialize_cuda_engine(f.read())
+        
+        self._context = self._engine.create_execution_context()
 
         # Get the shape and data type of the input and output
         # Batch (first) dimension is dummy here.
@@ -34,26 +36,25 @@ class DptInference:
         self._d_input = torch.empty(tuple(self._input_shape), dtype=torch.from_numpy(np.array([], dtype=input_dtype)).dtype, device='cuda').view(-1)
         self._d_output = torch.empty(tuple(self._output_shape), dtype=torch.from_numpy(np.array([], dtype=output_dtype)).dtype, device='cuda').view(-1)
 
+    @torch.no_grad()
     def __call__(self, img):
         img = self._pre_process(img)
         
         # Create a CUDA stream for asynchronous processing
         stream = torch.cuda.Stream()
 
-        with self._engine.create_execution_context() as context:
-            # Set input and output bindings
-            context.set_tensor_address('image', self._d_input.data_ptr())
-            context.set_tensor_address('depth', self._d_output.data_ptr())
+        # Set input and output bindings
+        self._context.set_tensor_address('image', self._d_input.data_ptr())
+        self._context.set_tensor_address('depth', self._d_output.data_ptr())
+        self._context.set_input_shape('image', self._input_shape)
 
-            # Copy input data to GPU memory
-            self._d_input.copy_(img.view(-1))
+        # Copy input data to GPU memory
+        self._d_input.copy_(img.contiguous().view(-1))
+        torch.cuda.synchronize()
 
-            context.execute_async_v3(stream.cuda_stream)
-            # stream.synchronize()
+        self._context.execute_async_v3(stream.cuda_stream)
+        torch.cuda.synchronize()
 
-            # Create a PyTorch tensor that references the GPU memory
-            depth = self._d_output
-
-        depth = self._post_process(depth)
+        depth = self._post_process(self._d_output)
 
         return depth
