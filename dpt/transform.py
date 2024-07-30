@@ -66,7 +66,7 @@ class DptPostProcess(object):
 
     def __call__(self, depth):
         depth = depth.reshape(*self._depth_shape)
-        depth = self._normalize(depth)
         depth = F.interpolate(depth.unsqueeze(1), size=self._target_size, mode='bilinear', align_corners=False)
+        depth = self._normalize(depth)
 
         return depth.to(self._dtype).squeeze(1)

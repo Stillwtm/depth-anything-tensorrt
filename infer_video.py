@@ -3,7 +3,7 @@ import os
 import cv2
 from PIL import Image
 import numpy as np
-from dpt.dpt import DptInference
+from dpt.dpt import DptTrtInference
 import time
 
 
@@ -25,7 +25,7 @@ def run(args):
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-    dpt = DptInference(args.engine, args.batch, (height, width), (height, width))
+    dpt = DptTrtInference(args.engine, args.batch, (height, width), (height, width))
 
     input_imgs = []
     while cap.isOpened():

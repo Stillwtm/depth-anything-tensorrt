@@ -2,7 +2,7 @@ import argparse
 import os
 import cv2
 import numpy as np
-from dpt.dpt import DptInference
+from dpt.dpt import DptTrtInference
 import time
 
 def load_frame(frame):
@@ -27,7 +27,7 @@ def run(args):
     output_path = os.path.join(args.outdir, 'webcam_depth.mp4')
     out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
 
-    dpt = DptInference(args.engine, 1, (height, width), (height, width))
+    dpt = DptTrtInference(args.engine, 1, (height, width), (height, width))
 
     frame_count = 0
     start_time = time.time()

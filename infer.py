@@ -3,7 +3,7 @@ import os
 import cv2
 from PIL import Image
 import numpy as np
-from dpt.dpt import DptInference
+from dpt.dpt import DptTrtInference
 
 
 def load_image(filepath):
@@ -16,7 +16,7 @@ def run(args):
     os.makedirs(args.outdir, exist_ok=True)
     input_img = load_image(args.img)
 
-    dpt = DptInference(args.engine, 1, input_img.shape[2:], (512, 512))
+    dpt = DptTrtInference(args.engine, 1, input_img.shape[2:], (512, 512))
     depth = dpt(input_img)
 
     # Save depth map
