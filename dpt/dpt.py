@@ -6,10 +6,10 @@ from .transform import DptPreProcess, DptPostProcess
 
 
 class DptTrtInference:
-    def __init__(self, engine_path, batch_size, img_size, depth_size, dpt_size=518):
+    def __init__(self, engine_path, batch_size, img_size, depth_size, dpt_size=518, device='cuda'):
         self._engine_path = engine_path
         self._batch_size = batch_size
-        self._device = torch.device('cuda')
+        self._device = device
         self._prepare()
         self._pre_process = DptPreProcess(img_size, dpt_size, device=self._device)
         self._post_process = DptPostProcess(self._output_shape, depth_size)

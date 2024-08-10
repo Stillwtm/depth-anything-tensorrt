@@ -15,6 +15,7 @@ def main():
     parser.add_argument('--onnx', type=str, required=True)
     parser.add_argument('--input_size', type=int, default=518)
     parser.add_argument('--encoder', type=str, default='vitl', choices=['vits', 'vitb', 'vitl', 'vitg'])
+    parser.add_argument('--batch', type=int, default=1)
     parser.add_argument('--dynamic_batch', action='store_true', default=False, help='Export the model with dynamic axes')
     args = parser.parse_args()
     
@@ -29,7 +30,7 @@ def main():
     depth_anything.load_state_dict(torch.load(args.checkpoint, map_location='cpu'))
     depth_anything = depth_anything.to('cpu').eval()
 
-    dummy_input = torch.ones((3, args.input_size, args.input_size)).unsqueeze(0)
+    dummy_input = torch.ones((args.batch, 3, args.input_size, args.input_size))
     example_output = depth_anything.forward(dummy_input)
     dynamic_axes = {'input': {0: 'batch_size'}} if args.dynamic_batch else None
 
