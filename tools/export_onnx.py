@@ -8,6 +8,7 @@ import torch
 import torch.onnx
 
 from third_party.depth_anything_v2.depth_anything_v2.dpt import DepthAnythingV2
+from third_party.depth_anything_v2.metric_depth.depth_anything_v2.dpt import DepthAnythingV2 as MetricDepthAnythingV2
 
 def main():
     parser = argparse.ArgumentParser()
@@ -17,6 +18,8 @@ def main():
     parser.add_argument('--encoder', type=str, default='vitl', choices=['vits', 'vitb', 'vitl', 'vitg'])
     parser.add_argument('--batch', type=int, default=1)
     parser.add_argument('--dynamic_batch', action='store_true', default=False, help='Export the model with dynamic axes')
+    parser.add_argument('--metric', action='store_true', default=False, help='Use metric Depth Anything V2 model')
+    parser.add_argument('--max_depth', type=int, default=20, help='Max depth for metric model')
     args = parser.parse_args()
     
     model_configs = {
@@ -26,7 +29,10 @@ def main():
         'vitg': {'encoder': 'vitg', 'features': 384, 'out_channels': [1536, 1536, 1536, 1536]}
     }
     
-    depth_anything = DepthAnythingV2(**model_configs[args.encoder])
+    if args.metric:
+        depth_anything = MetricDepthAnythingV2(**{**model_configs[args.encoder], 'max_depth': args.max_depth})
+    else:
+        depth_anything = DepthAnythingV2(**model_configs[args.encoder])
     depth_anything.load_state_dict(torch.load(args.checkpoint, map_location='cpu'))
     depth_anything = depth_anything.to('cpu').eval()
 

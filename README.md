@@ -28,13 +28,13 @@ Replace the `third_party/depth_anything_v2/depth_anything_v2/dpt.py` file with t
 ### Convert to ONNX
 
 ```bash
-python tools/export_onnx.py --checkpoint <path to checkpoint> --onnx <path to save onnx model> --input_size <dpt input size> --encoder <dpt encoder> [--dynamic_batch]
+python tools/export_onnx.py --checkpoint <path to checkpoint> --onnx <path to save onnx model> --input_size <dpt input size> --encoder <dpt encoder> --batch <batch size> [--dynamic_batch] [--metric] [--max_depth <max depth>]
 ```
 
 ### Convert ONNX to TensorRT
 
 ```bash
-python onnx2trt.py --onnx <path to onnx model> --engine <path to save trt engine> [--fp16]
+python tools/onnx2trt.py --onnx <path to onnx model> --engine <path to save trt engine> [--fp16]
 ```
 
 You can also enable dynamic batch size for TensorRT engine (If you want to use dynamic batch size here, also remember to enable it in the previous ONNX model conversion step):
